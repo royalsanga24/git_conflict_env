@@ -1,0 +1,114 @@
+[
+  {
+    "id": "hard_001",
+    "difficulty": "hard",
+    "title": "Function refactored into class vs feature added to original function",
+    "description": "One developer refactored a standalone function into a class with configuration, while another developer added caching to the original function. The agent must integrate the caching logic into the new class structure.",
+    "file_path": "services/geocoder.py",
+    "language": "python",
+    "ours_description": "Refactored geocode() into Geocoder class with configurable provider (PR #130: Geocoder refactor)",
+    "theirs_description": "Added LRU caching to geocode() to avoid duplicate API calls (PR #134: Geocode caching)",
+    "base_content": "import requests\n\nAPI_URL = \"https://maps.example.com/api/geocode\"\n\n\ndef geocode(address):\n    \"\"\"Convert an address string to lat/lng coordinates.\"\"\"\n    response = requests.get(API_URL, params={\"q\": address})\n    response.raise_for_status()\n    data = response.json()\n    return {\"lat\": data[\"lat\"], \"lng\": data[\"lng\"]}\n",
+    "conflict_file": "import requests\n<<<<<<< HEAD\n\n\nclass Geocoder:\n    \"\"\"Geocoding service with configurable provider.\"\"\"\n\n    def __init__(self, provider_url=\"https://maps.example.com/api/geocode\"):\n        self.provider_url = provider_url\n\n    def geocode(self, address):\n        \"\"\"Convert an address string to lat/lng coordinates.\"\"\"\n        response = requests.get(self.provider_url, params={\"q\": address})\n        response.raise_for_status()\n        data = response.json()\n        return {\"lat\": data[\"lat\"], \"lng\": data[\"lng\"]}\n\n    def reverse_geocode(self, lat, lng):\n        \"\"\"Convert coordinates to an address.\"\"\"\n        response = requests.get(\n            self.provider_url, params={\"lat\": lat, \"lng\": lng, \"reverse\": True}\n        )\n        response.raise_for_status()\n        return response.json()[\"address\"]\n=======\nfrom functools import lru_cache\n\nAPI_URL = \"https://maps.example.com/api/geocode\"\n\n\n@lru_cache(maxsize=1024)\ndef geocode(address):\n    \"\"\"Convert an address string to lat/lng coordinates.\"\"\"\n    response = requests.get(API_URL, params={\"q\": address})\n    response.raise_for_status()\n    data = response.json()\n    return data[\"lat\"], data[\"lng\"]\n\n\ndef geocode_batch(addresses):\n    \"\"\"Geocode multiple addresses, leveraging the cache.\"\"\"\n    return [geocode(addr) for addr in addresses]\n>>>>>>> feature/geocode-cache\n",
+    "gold_resolution": "import requests\nfrom functools import lru_cache\n\n\nclass Geocoder:\n    \"\"\"Geocoding service with configurable provider.\"\"\"\n\n    def __init__(self, provider_url=\"https://maps.example.com/api/geocode\"):\n        self.provider_url = provider_url\n        self.geocode = lru_cache(maxsize=1024)(self._geocode)\n\n    def _geocode(self, address):\n        \"\"\"Convert an address string to lat/lng coordinates.\"\"\"\n        response = requests.get(self.provider_url, params={\"q\": address})\n        response.raise_for_status()\n        data = response.json()\n        return {\"lat\": data[\"lat\"], \"lng\": data[\"lng\"]}\n\n    def reverse_geocode(self, lat, lng):\n        \"\"\"Convert coordinates to an address.\"\"\"\n        response = requests.get(\n            self.provider_url, params={\"lat\": lat, \"lng\": lng, \"reverse\": True}\n        )\n        response.raise_for_status()\n        return response.json()[\"address\"]\n\n    def geocode_batch(self, addresses):\n        \"\"\"Geocode multiple addresses, leveraging the cache.\"\"\"\n        return [self.geocode(addr) for addr in addresses]\n",
+    "key_elements": [
+      {"description": "Geocoder class structure preserved", "pattern": "class Geocoder:"},
+      {"description": "configurable provider_url in __init__", "pattern": "def __init__(self, provider_url="},
+      {"description": "lru_cache import present", "pattern": "from functools import lru_cache"},
+      {"description": "caching applied to geocode", "pattern": "lru_cache"},
+      {"description": "reverse_geocode method preserved", "pattern": "def reverse_geocode(self, lat, lng):"},
+      {"description": "batch geocoding as method", "pattern": "def geocode_batch(self, addresses):"}
+    ]
+  },
+  {
+    "id": "hard_002",
+    "difficulty": "hard",
+    "title": "Both sides fixed the same bug in different ways",
+    "description": "A race condition in a connection pool was independently fixed by two developers. One used a threading lock, the other used a queue-based approach. The lock-based approach is simpler and correct; the queue approach adds unnecessary complexity. The agent must choose the better fix.",
+    "file_path": "lib/connection_pool.py",
+    "language": "python",
+    "ours_description": "Fixed race condition with threading lock (PR #140: Thread-safe connection pool)",
+    "theirs_description": "Fixed race condition with queue-based approach (PR #143: Connection pool fix)",
+    "base_content": "class ConnectionPool:\n    def __init__(self, max_size=10):\n        self.max_size = max_size\n        self.connections = []\n        self.available = list(range(max_size))\n\n    def acquire(self):\n        if not self.available:\n            raise RuntimeError(\"No connections available\")\n        conn_id = self.available.pop()\n        return conn_id\n\n    def release(self, conn_id):\n        self.available.append(conn_id)\n",
+    "conflict_file": "<<<<<<< HEAD\nimport threading\n\n\nclass ConnectionPool:\n    def __init__(self, max_size=10):\n        self.max_size = max_size\n        self.connections = []\n        self.available = list(range(max_size))\n        self._lock = threading.Lock()\n\n    def acquire(self):\n        with self._lock:\n            if not self.available:\n                raise RuntimeError(\"No connections available\")\n            return self.available.pop()\n\n    def release(self, conn_id):\n        with self._lock:\n            if conn_id not in self.available:\n                self.available.append(conn_id)\n=======\nimport queue\n\n\nclass ConnectionPool:\n    def __init__(self, max_size=10):\n        self.max_size = max_size\n        self._pool = queue.Queue(maxsize=max_size)\n        for i in range(max_size):\n            self._pool.put(i)\n\n    def acquire(self, timeout=5):\n        try:\n            return self._pool.get(timeout=timeout)\n        except queue.Empty:\n            raise RuntimeError(\"No connections available\")\n\n    def release(self, conn_id):\n        self._pool.put(conn_id)\n>>>>>>> fix/pool-race-condition\n",
+    "gold_resolution": "import threading\n\n\nclass ConnectionPool:\n    def __init__(self, max_size=10):\n        self.max_size = max_size\n        self.connections = []\n        self.available = list(range(max_size))\n        self._lock = threading.Lock()\n\n    def acquire(self):\n        with self._lock:\n            if not self.available:\n                raise RuntimeError(\"No connections available\")\n            return self.available.pop()\n\n    def release(self, conn_id):\n        with self._lock:\n            if conn_id not in self.available:\n                self.available.append(conn_id)\n",
+    "key_elements": [
+      {"description": "threading import chosen over queue", "pattern": "import threading"},
+      {"description": "lock instance created", "pattern": "self._lock = threading.Lock()"},
+      {"description": "acquire uses lock context manager", "pattern": "with self._lock:"},
+      {"description": "release guards against duplicate returns", "pattern": "if conn_id not in self.available:"},
+      {"description": "no queue import", "anti_pattern": "import queue"}
+    ]
+  },
+  {
+    "id": "hard_003",
+    "difficulty": "hard",
+    "title": "Multi-hunk conflict with interacting changes",
+    "description": "A module has THREE conflict regions that depend on each other: imports at the top, a constant definition in the middle, and function logic at the bottom. Resolving each hunk correctly requires understanding how the hunks relate.",
+    "file_path": "services/notification_service.py",
+    "language": "python",
+    "ours_description": "Added Slack notification channel with webhook support (PR #150: Slack integration)",
+    "theirs_description": "Added rate limiting to all notification channels (PR #155: Rate limiting)",
+    "base_content": "import smtplib\n\nMAX_RETRIES = 3\n\n\ndef send_notification(user, message, channel=\"email\"):\n    if channel == \"email\":\n        _send_email(user.email, message)\n    else:\n        raise ValueError(f\"Unknown channel: {channel}\")\n\n\ndef _send_email(to, message):\n    with smtplib.SMTP('localhost') as server:\n        server.sendmail('noreply@app.com', to, message)\n",
+    "conflict_file": "import smtplib\n<<<<<<< HEAD\nimport requests\n\nMAX_RETRIES = 3\nSLACK_WEBHOOK_URL = \"https://hooks.slack.com/services/DEFAULT\"\n=======\nimport time\nfrom collections import defaultdict\n\nMAX_RETRIES = 3\nRATE_LIMIT_PER_MINUTE = 30\n_send_counts = defaultdict(list)\n>>>>>>> feature/rate-limiting\n\n\n<<<<<<< HEAD\ndef send_notification(user, message, channel=\"email\"):\n    if channel == \"email\":\n        _send_email(user.email, message)\n    elif channel == \"slack\":\n        _send_slack(user.slack_id, message)\n    else:\n        raise ValueError(f\"Unknown channel: {channel}\")\n=======\ndef send_notification(user, message, channel=\"email\"):\n    _check_rate_limit(user.id)\n    if channel == \"email\":\n        _send_email(user.email, message)\n    else:\n        raise ValueError(f\"Unknown channel: {channel}\")\n>>>>>>> feature/rate-limiting\n\n\ndef _send_email(to, message):\n    with smtplib.SMTP('localhost') as server:\n        server.sendmail('noreply@app.com', to, message)\n\n\n<<<<<<< HEAD\ndef _send_slack(slack_id, message):\n    payload = {\"channel\": slack_id, \"text\": message}\n    response = requests.post(SLACK_WEBHOOK_URL, json=payload)\n    response.raise_for_status()\n=======\ndef _check_rate_limit(user_id):\n    now = time.time()\n    _send_counts[user_id] = [t for t in _send_counts[user_id] if now - t < 60]\n    if len(_send_counts[user_id]) >= RATE_LIMIT_PER_MINUTE:\n        raise RuntimeError(f\"Rate limit exceeded for user {user_id}\")\n    _send_counts[user_id].append(now)\n>>>>>>> feature/rate-limiting\n",
+    "gold_resolution": "import smtplib\nimport requests\nimport time\nfrom collections import defaultdict\n\nMAX_RETRIES = 3\nSLACK_WEBHOOK_URL = \"https://hooks.slack.com/services/DEFAULT\"\nRATE_LIMIT_PER_MINUTE = 30\n_send_counts = defaultdict(list)\n\n\ndef send_notification(user, message, channel=\"email\"):\n    _check_rate_limit(user.id)\n    if channel == \"email\":\n        _send_email(user.email, message)\n    elif channel == \"slack\":\n        _send_slack(user.slack_id, message)\n    else:\n        raise ValueError(f\"Unknown channel: {channel}\")\n\n\ndef _send_email(to, message):\n    with smtplib.SMTP('localhost') as server:\n        server.sendmail('noreply@app.com', to, message)\n\n\ndef _send_slack(slack_id, message):\n    payload = {\"channel\": slack_id, \"text\": message}\n    response = requests.post(SLACK_WEBHOOK_URL, json=payload)\n    response.raise_for_status()\n\n\ndef _check_rate_limit(user_id):\n    now = time.time()\n    _send_counts[user_id] = [t for t in _send_counts[user_id] if now - t < 60]\n    if len(_send_counts[user_id]) >= RATE_LIMIT_PER_MINUTE:\n        raise RuntimeError(f\"Rate limit exceeded for user {user_id}\")\n    _send_counts[user_id].append(now)\n",
+    "key_elements": [
+      {"description": "all four imports present", "pattern": "import requests"},
+      {"description": "time import present", "pattern": "import time"},
+      {"description": "defaultdict import present", "pattern": "from collections import defaultdict"},
+      {"description": "SLACK_WEBHOOK_URL constant defined", "pattern": "SLACK_WEBHOOK_URL"},
+      {"description": "RATE_LIMIT_PER_MINUTE constant defined", "pattern": "RATE_LIMIT_PER_MINUTE = 30"},
+      {"description": "rate limit check in send_notification", "pattern": "_check_rate_limit(user.id)"},
+      {"description": "slack channel in send_notification", "pattern": "elif channel == \"slack\":"},
+      {"description": "_send_slack function present", "pattern": "def _send_slack(slack_id, message):"},
+      {"description": "_check_rate_limit function present", "pattern": "def _check_rate_limit(user_id):"}
+    ]
+  },
+  {
+    "id": "hard_004",
+    "difficulty": "hard",
+    "title": "One side deleted a function, other side modified and extended it",
+    "description": "One developer deprecated and removed a legacy CSV export function, replacing calls with a new streaming API. The other developer added column filtering to the same CSV function. The agent must keep the streaming replacement but incorporate the column filtering capability.",
+    "file_path": "exports/csv_export.py",
+    "language": "python",
+    "ours_description": "Replaced legacy export_csv() with streaming export_stream() (PR #170: Streaming exports)",
+    "theirs_description": "Added column filtering to export_csv() (PR #175: Selective column export)",
+    "base_content": "import csv\nimport io\n\n\ndef export_csv(records):\n    \"\"\"Export records to a CSV string.\"\"\"\n    if not records:\n        return \"\"\n    output = io.StringIO()\n    writer = csv.DictWriter(output, fieldnames=records[0].keys())\n    writer.writeheader()\n    writer.writerows(records)\n    return output.getvalue()\n",
+    "conflict_file": "import csv\nimport io\n<<<<<<< HEAD\nfrom typing import Generator, List, Dict\n\n\ndef export_stream(records, chunk_size=100):\n    \"\"\"Stream records as CSV chunks for memory efficiency.\"\"\"\n    if not records:\n        yield \"\"\n        return\n    fieldnames = list(records[0].keys())\n    for i in range(0, len(records), chunk_size):\n        output = io.StringIO()\n        writer = csv.DictWriter(output, fieldnames=fieldnames)\n        if i == 0:\n            writer.writeheader()\n        writer.writerows(records[i:i + chunk_size])\n        yield output.getvalue()\n=======\nfrom typing import List, Optional\n\n\ndef export_csv(records, columns=None):\n    \"\"\"Export records to a CSV string.\n\n    Args:\n        records: List of dicts to export.\n        columns: Optional list of column names to include.\n                 If None, all columns are included.\n    \"\"\"\n    if not records:\n        return \"\"\n    if columns:\n        records = [{k: r[k] for k in columns if k in r} for r in records]\n    fieldnames = columns or list(records[0].keys())\n    output = io.StringIO()\n    writer = csv.DictWriter(output, fieldnames=fieldnames)\n    writer.writeheader()\n    writer.writerows(records)\n    return output.getvalue()\n>>>>>>> feature/column-filter\n",
+    "gold_resolution": "import csv\nimport io\nfrom typing import Generator, List, Dict, Optional\n\n\ndef export_stream(records, chunk_size=100, columns=None):\n    \"\"\"Stream records as CSV chunks for memory efficiency.\n\n    Args:\n        records: List of dicts to export.\n        chunk_size: Number of records per chunk.\n        columns: Optional list of column names to include.\n                 If None, all columns are included.\n    \"\"\"\n    if not records:\n        yield \"\"\n        return\n    if columns:\n        records = [{k: r[k] for k in columns if k in r} for r in records]\n    fieldnames = columns or list(records[0].keys())\n    for i in range(0, len(records), chunk_size):\n        output = io.StringIO()\n        writer = csv.DictWriter(output, fieldnames=fieldnames)\n        if i == 0:\n            writer.writeheader()\n        writer.writerows(records[i:i + chunk_size])\n        yield output.getvalue()\n",
+    "key_elements": [
+      {"description": "streaming function kept (not legacy)", "pattern": "def export_stream("},
+      {"description": "columns parameter added to streaming function", "pattern": "columns=None"},
+      {"description": "column filtering logic integrated", "pattern": "records = [{k: r[k] for k in columns if k in r} for r in records]"},
+      {"description": "chunk_size preserved", "pattern": "chunk_size=100"},
+      {"description": "yield-based streaming preserved", "pattern": "yield output.getvalue()"},
+      {"description": "header only on first chunk", "pattern": "if i == 0:"},
+      {"description": "no legacy export_csv function", "anti_pattern": "def export_csv("}
+    ]
+  },
+  {
+    "id": "hard_005",
+    "difficulty": "hard",
+    "title": "Conflicting API endpoint with different schemas and middleware",
+    "description": "Both developers added or modified the /users endpoint. One added pagination with cursor-based navigation, the other added field-level filtering and sorting. The result must support pagination, filtering, AND sorting in a single coherent endpoint.",
+    "file_path": "api/routes/users.py",
+    "language": "python",
+    "ours_description": "Added cursor-based pagination to /users endpoint (PR #200: Paginated user listing)",
+    "theirs_description": "Added filtering and sorting to /users endpoint (PR #205: User search API)",
+    "base_content": "from fastapi import APIRouter, Depends\nfrom db import get_session\n\nrouter = APIRouter()\n\n\n@router.get(\"/users\")\nasync def list_users(session=Depends(get_session)):\n    users = session.query(User).all()\n    return {\"users\": [u.to_dict() for u in users]}\n",
+    "conflict_file": "from fastapi import APIRouter, Depends, Query\nfrom db import get_session\n<<<<<<< HEAD\nfrom typing import Optional\n\nrouter = APIRouter()\n\n\n@router.get(\"/users\")\nasync def list_users(\n    cursor: Optional[str] = Query(None, description=\"Pagination cursor\"),\n    limit: int = Query(20, ge=1, le=100),\n    session=Depends(get_session),\n):\n    query = session.query(User).order_by(User.id)\n    if cursor:\n        query = query.filter(User.id > int(cursor))\n    users = query.limit(limit + 1).all()\n    has_next = len(users) > limit\n    if has_next:\n        users = users[:limit]\n    return {\n        \"users\": [u.to_dict() for u in users],\n        \"next_cursor\": str(users[-1].id) if has_next else None,\n        \"has_next\": has_next,\n    }\n=======\nfrom typing import Optional, List\nfrom enum import Enum\n\nrouter = APIRouter()\n\n\nclass SortOrder(str, Enum):\n    asc = \"asc\"\n    desc = \"desc\"\n\n\n@router.get(\"/users\")\nasync def list_users(\n    role: Optional[str] = Query(None, description=\"Filter by role\"),\n    is_active: Optional[bool] = Query(None, description=\"Filter by active status\"),\n    sort_by: str = Query(\"id\", description=\"Field to sort by\"),\n    sort_order: SortOrder = Query(SortOrder.asc),\n    session=Depends(get_session),\n):\n    query = session.query(User)\n    if role:\n        query = query.filter(User.role == role)\n    if is_active is not None:\n        query = query.filter(User.is_active == is_active)\n    order_col = getattr(User, sort_by, User.id)\n    if sort_order == SortOrder.desc:\n        query = query.order_by(order_col.desc())\n    else:\n        query = query.order_by(order_col.asc())\n    users = query.all()\n    return {\"users\": [u.to_dict() for u in users]}\n>>>>>>> feature/user-search\n",
+    "gold_resolution": "from fastapi import APIRouter, Depends, Query\nfrom db import get_session\nfrom typing import Optional, List\nfrom enum import Enum\n\nrouter = APIRouter()\n\n\nclass SortOrder(str, Enum):\n    asc = \"asc\"\n    desc = \"desc\"\n\n\n@router.get(\"/users\")\nasync def list_users(\n    cursor: Optional[str] = Query(None, description=\"Pagination cursor\"),\n    limit: int = Query(20, ge=1, le=100),\n    role: Optional[str] = Query(None, description=\"Filter by role\"),\n    is_active: Optional[bool] = Query(None, description=\"Filter by active status\"),\n    sort_by: str = Query(\"id\", description=\"Field to sort by\"),\n    sort_order: SortOrder = Query(SortOrder.asc),\n    session=Depends(get_session),\n):\n    query = session.query(User)\n    if role:\n        query = query.filter(User.role == role)\n    if is_active is not None:\n        query = query.filter(User.is_active == is_active)\n    order_col = getattr(User, sort_by, User.id)\n    if sort_order == SortOrder.desc:\n        query = query.order_by(order_col.desc())\n    else:\n        query = query.order_by(order_col.asc())\n    if cursor:\n        query = query.filter(User.id > int(cursor))\n    users = query.limit(limit + 1).all()\n    has_next = len(users) > limit\n    if has_next:\n        users = users[:limit]\n    return {\n        \"users\": [u.to_dict() for u in users],\n        \"next_cursor\": str(users[-1].id) if has_next else None,\n        \"has_next\": has_next,\n    }\n",
+    "key_elements": [
+      {"description": "SortOrder enum defined", "pattern": "class SortOrder(str, Enum):"},
+      {"description": "cursor pagination parameter", "pattern": "cursor: Optional[str]"},
+      {"description": "limit parameter with bounds", "pattern": "limit: int = Query(20, ge=1, le=100)"},
+      {"description": "role filter parameter", "pattern": "role: Optional[str]"},
+      {"description": "is_active filter parameter", "pattern": "is_active: Optional[bool]"},
+      {"description": "sort_by parameter", "pattern": "sort_by: str = Query(\"id\""},
+      {"description": "sort_order parameter", "pattern": "sort_order: SortOrder"},
+      {"description": "filtering logic applied before pagination", "pattern": "query = query.filter(User.role == role)"},
+      {"description": "cursor-based pagination with has_next", "pattern": "has_next = len(users) > limit"},
+      {"description": "next_cursor in response", "pattern": "\"next_cursor\":"}
+    ]
+  }
+]

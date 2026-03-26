@@ -1,0 +1,8 @@
+spec_version: 1
+name: git_conflict_env
+type: space
+runtime: fastapi
+app: server.app:app
+port: 8000
+description: "Git merge conflict resolution environment — agents resolve real conflicts across Python, JS, CSS, JSON, YAML files with deterministic grading"
+version: "0.1.0"

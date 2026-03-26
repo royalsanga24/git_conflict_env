@@ -1,0 +1,106 @@
+[
+  {
+    "id": "medium_001",
+    "difficulty": "medium",
+    "title": "Both sides modified function parameters differently",
+    "description": "One developer added a 'timeout' parameter while another added a 'retries' parameter to the same HTTP request function. The resolution must include both new parameters.",
+    "file_path": "lib/http_client.py",
+    "language": "python",
+    "ours_description": "Added timeout parameter with default value (PR #51: Request timeout support)",
+    "theirs_description": "Added retries parameter with exponential backoff (PR #54: Retry logic)",
+    "base_content": "import requests\n\n\ndef fetch_data(url, headers=None):\n    \"\"\"Fetch data from a URL.\"\"\"\n    response = requests.get(url, headers=headers)\n    response.raise_for_status()\n    return response.json()\n",
+    "conflict_file": "import requests\n<<<<<<< HEAD\nimport socket\n\n\ndef fetch_data(url, headers=None, timeout=30):\n    \"\"\"Fetch data from a URL.\"\"\"\n    try:\n        response = requests.get(url, headers=headers, timeout=timeout)\n        response.raise_for_status()\n        return response.json()\n    except socket.timeout:\n        raise TimeoutError(f\"Request to {url} timed out after {timeout}s\")\n=======\nimport time\n\n\ndef fetch_data(url, headers=None, retries=3):\n    \"\"\"Fetch data from a URL.\"\"\"\n    for attempt in range(retries):\n        try:\n            response = requests.get(url, headers=headers)\n            response.raise_for_status()\n            return response.json()\n        except requests.RequestException:\n            if attempt == retries - 1:\n                raise\n            time.sleep(2 ** attempt)\n>>>>>>> feature/retry-logic\n",
+    "gold_resolution": "import requests\nimport socket\nimport time\n\n\ndef fetch_data(url, headers=None, timeout=30, retries=3):\n    \"\"\"Fetch data from a URL.\"\"\"\n    for attempt in range(retries):\n        try:\n            response = requests.get(url, headers=headers, timeout=timeout)\n            response.raise_for_status()\n            return response.json()\n        except socket.timeout:\n            raise TimeoutError(f\"Request to {url} timed out after {timeout}s\")\n        except requests.RequestException:\n            if attempt == retries - 1:\n                raise\n            time.sleep(2 ** attempt)\n",
+    "key_elements": [
+      {"description": "both timeout and retries in function signature", "pattern": "def fetch_data(url, headers=None, timeout=30, retries=3):"},
+      {"description": "retry loop present", "pattern": "for attempt in range(retries):"},
+      {"description": "timeout passed to requests.get", "pattern": "requests.get(url, headers=headers, timeout=timeout)"},
+      {"description": "socket.timeout handling preserved", "pattern": "except socket.timeout:"},
+      {"description": "exponential backoff preserved", "pattern": "time.sleep(2 ** attempt)"},
+      {"description": "both imports present", "pattern": "import time"}
+    ]
+  },
+  {
+    "id": "medium_002",
+    "difficulty": "medium",
+    "title": "Variable rename on one side, new logic using old name on other",
+    "description": "One developer renamed 'user_data' to 'profile' throughout the function for clarity, while another developer added new validation logic that references 'user_data'. The resolution must use the renamed variable consistently.",
+    "file_path": "services/user_service.js",
+    "language": "javascript",
+    "ours_description": "Renamed user_data to profile for consistency (PR #88: Naming conventions)",
+    "theirs_description": "Added age verification before account creation (PR #91: Age gate)",
+    "base_content": "function createAccount(user_data) {\n  validateEmail(user_data.email);\n  const account = db.create(user_data);\n  sendWelcomeEmail(user_data.email);\n  return account;\n}\n",
+    "conflict_file": "<<<<<<< HEAD\nfunction createAccount(profile) {\n  validateEmail(profile.email);\n  const account = db.create(profile);\n  sendWelcomeEmail(profile.email);\n  return account;\n}\n=======\nfunction createAccount(user_data) {\n  validateEmail(user_data.email);\n  if (user_data.age < 18) {\n    throw new Error('Must be 18 or older to create an account');\n  }\n  const account = db.create(user_data);\n  sendWelcomeEmail(user_data.email);\n  return account;\n}\n>>>>>>> feature/age-gate\n",
+    "gold_resolution": "function createAccount(profile) {\n  validateEmail(profile.email);\n  if (profile.age < 18) {\n    throw new Error('Must be 18 or older to create an account');\n  }\n  const account = db.create(profile);\n  sendWelcomeEmail(profile.email);\n  return account;\n}\n",
+    "key_elements": [
+      {"description": "function uses renamed parameter 'profile'", "pattern": "function createAccount(profile)"},
+      {"description": "age check uses renamed variable", "pattern": "profile.age < 18"},
+      {"description": "age gate error message preserved", "pattern": "Must be 18 or older to create an account"},
+      {"description": "db.create uses profile", "pattern": "db.create(profile)"},
+      {"description": "sendWelcomeEmail uses profile", "pattern": "sendWelcomeEmail(profile.email)"}
+    ]
+  },
+  {
+    "id": "medium_003",
+    "difficulty": "medium",
+    "title": "Both sides modified a CSS class with different properties",
+    "description": "One developer changed the button color scheme to match a rebrand, while another added responsive sizing. Both changes apply to the same selector.",
+    "file_path": "styles/components/button.css",
+    "language": "css",
+    "ours_description": "Updated button colors for rebrand (PR #102: Brand refresh)",
+    "theirs_description": "Added responsive sizing for mobile (PR #105: Mobile responsiveness)",
+    "base_content": ".btn-primary {\n  background-color: #007bff;\n  color: #ffffff;\n  padding: 8px 16px;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n",
+    "conflict_file": ".btn-primary {\n<<<<<<< HEAD\n  background-color: #6c5ce7;\n  color: #ffffff;\n  padding: 8px 16px;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  transition: background-color 0.2s ease;\n=======\n  background-color: #007bff;\n  color: #ffffff;\n  padding: 12px 24px;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n  font-size: clamp(14px, 2vw, 18px);\n>>>>>>> feature/mobile-responsive\n}\n",
+    "gold_resolution": ".btn-primary {\n  background-color: #6c5ce7;\n  color: #ffffff;\n  padding: 12px 24px;\n  border: none;\n  border-radius: 8px;\n  cursor: pointer;\n  transition: background-color 0.2s ease;\n  font-size: clamp(14px, 2vw, 18px);\n}\n",
+    "key_elements": [
+      {"description": "new brand color applied", "pattern": "background-color: #6c5ce7;"},
+      {"description": "responsive padding from mobile branch", "pattern": "padding: 12px 24px;"},
+      {"description": "updated border-radius from rebrand", "pattern": "border-radius: 8px;"},
+      {"description": "transition from rebrand", "pattern": "transition: background-color 0.2s ease;"},
+      {"description": "responsive font-size from mobile branch", "pattern": "font-size: clamp(14px, 2vw, 18px);"}
+    ]
+  },
+  {
+    "id": "medium_004",
+    "difficulty": "medium",
+    "title": "One side added error handling, other added a new code path",
+    "description": "One developer wrapped the file parser in try/except for robustness, while another added support for YAML files alongside the existing JSON support. The resolution needs both error handling and YAML support.",
+    "file_path": "parsers/config_parser.py",
+    "language": "python",
+    "ours_description": "Added error handling around file parsing (PR #37: Graceful parse failures)",
+    "theirs_description": "Added YAML support to config parser (PR #39: YAML config files)",
+    "base_content": "import json\nfrom pathlib import Path\n\n\ndef parse_config(filepath):\n    \"\"\"Parse a config file and return its contents.\"\"\"\n    content = Path(filepath).read_text()\n    if filepath.endswith('.json'):\n        return json.loads(content)\n    raise ValueError(f\"Unsupported format: {filepath}\")\n",
+    "conflict_file": "import json\nfrom pathlib import Path\n<<<<<<< HEAD\n\n\ndef parse_config(filepath):\n    \"\"\"Parse a config file and return its contents.\"\"\"\n    try:\n        content = Path(filepath).read_text()\n        if filepath.endswith('.json'):\n            return json.loads(content)\n        raise ValueError(f\"Unsupported format: {filepath}\")\n    except json.JSONDecodeError as e:\n        raise ValueError(f\"Invalid JSON in {filepath}: {e}\") from e\n    except FileNotFoundError:\n        raise FileNotFoundError(f\"Config file not found: {filepath}\")\n=======\nimport yaml\n\n\ndef parse_config(filepath):\n    \"\"\"Parse a config file and return its contents.\"\"\"\n    content = Path(filepath).read_text()\n    if filepath.endswith('.json'):\n        return json.loads(content)\n    if filepath.endswith(('.yml', '.yaml')):\n        return yaml.safe_load(content)\n    raise ValueError(f\"Unsupported format: {filepath}\")\n>>>>>>> feature/yaml-support\n",
+    "gold_resolution": "import json\nfrom pathlib import Path\nimport yaml\n\n\ndef parse_config(filepath):\n    \"\"\"Parse a config file and return its contents.\"\"\"\n    try:\n        content = Path(filepath).read_text()\n        if filepath.endswith('.json'):\n            return json.loads(content)\n        if filepath.endswith(('.yml', '.yaml')):\n            return yaml.safe_load(content)\n        raise ValueError(f\"Unsupported format: {filepath}\")\n    except json.JSONDecodeError as e:\n        raise ValueError(f\"Invalid JSON in {filepath}: {e}\") from e\n    except FileNotFoundError:\n        raise FileNotFoundError(f\"Config file not found: {filepath}\")\n",
+    "key_elements": [
+      {"description": "yaml import present", "pattern": "import yaml"},
+      {"description": "try block wrapping logic", "pattern": "try:"},
+      {"description": "yaml parsing support added", "pattern": "yaml.safe_load(content)"},
+      {"description": "YAML file extension check", "pattern": "filepath.endswith(('.yml', '.yaml'))"},
+      {"description": "JSONDecodeError handling preserved", "pattern": "except json.JSONDecodeError as e:"},
+      {"description": "FileNotFoundError handling preserved", "pattern": "except FileNotFoundError:"}
+    ]
+  },
+  {
+    "id": "medium_005",
+    "difficulty": "medium",
+    "title": "Both sides modified a docker-compose service differently",
+    "description": "One developer added health check configuration while another added volume mounts and environment variables to the same service. Both changes are needed for the complete service definition.",
+    "file_path": "docker-compose.yml",
+    "language": "yaml",
+    "ours_description": "Added health check for the web service (PR #112: Container health monitoring)",
+    "theirs_description": "Added volume mounts and env vars for local dev (PR #115: Dev environment setup)",
+    "base_content": "services:\n  web:\n    image: myapp:latest\n    ports:\n      - \"8080:8080\"\n    depends_on:\n      - db\n  db:\n    image: postgres:16\n    ports:\n      - \"5432:5432\"\n",
+    "conflict_file": "services:\n  web:\n    image: myapp:latest\n    ports:\n      - \"8080:8080\"\n<<<<<<< HEAD\n    healthcheck:\n      test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:8080/health\"]\n      interval: 30s\n      timeout: 10s\n      retries: 3\n    depends_on:\n      - db\n=======\n    volumes:\n      - ./src:/app/src\n      - ./config:/app/config\n    environment:\n      - DATABASE_URL=postgresql://dev:dev@db:5432/myapp\n      - DEBUG=true\n    depends_on:\n      - db\n>>>>>>> feature/dev-setup\n  db:\n    image: postgres:16\n    ports:\n      - \"5432:5432\"\n",
+    "gold_resolution": "services:\n  web:\n    image: myapp:latest\n    ports:\n      - \"8080:8080\"\n    healthcheck:\n      test: [\"CMD\", \"curl\", \"-f\", \"http://localhost:8080/health\"]\n      interval: 30s\n      timeout: 10s\n      retries: 3\n    volumes:\n      - ./src:/app/src\n      - ./config:/app/config\n    environment:\n      - DATABASE_URL=postgresql://dev:dev@db:5432/myapp\n      - DEBUG=true\n    depends_on:\n      - db\n  db:\n    image: postgres:16\n    ports:\n      - \"5432:5432\"\n",
+    "key_elements": [
+      {"description": "healthcheck block present", "pattern": "healthcheck:"},
+      {"description": "health check test command", "pattern": "curl"},
+      {"description": "volumes block present", "pattern": "volumes:"},
+      {"description": "source volume mount", "pattern": "./src:/app/src"},
+      {"description": "environment block present", "pattern": "environment:"},
+      {"description": "DATABASE_URL env var", "pattern": "DATABASE_URL=postgresql://dev:dev@db:5432/myapp"},
+      {"description": "depends_on not duplicated", "pattern": "depends_on:"}
+    ]
+  }
+]

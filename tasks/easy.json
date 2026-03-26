@@ -1,0 +1,97 @@
+[
+  {
+    "id": "easy_001",
+    "difficulty": "easy",
+    "title": "Both sides added different utility functions",
+    "description": "Two developers independently added different helper functions to the same utilities module. Both functions are independent and should coexist.",
+    "file_path": "utils/math_helpers.py",
+    "language": "python",
+    "ours_description": "Added tax calculation function (PR #42: Add tax utilities)",
+    "theirs_description": "Added discount calculation function (PR #45: Pricing helpers)",
+    "base_content": "# Math utility functions\n",
+    "conflict_file": "# Math utility functions\n\n<<<<<<< HEAD\ndef calculate_tax(amount, rate=0.1):\n    \"\"\"Calculate tax for a given amount.\"\"\"\n    return round(amount * rate, 2)\n=======\ndef calculate_discount(amount, percent):\n    \"\"\"Apply a percentage discount.\"\"\"\n    return round(amount * (1 - percent / 100), 2)\n>>>>>>> feature/pricing\n",
+    "gold_resolution": "# Math utility functions\n\ndef calculate_tax(amount, rate=0.1):\n    \"\"\"Calculate tax for a given amount.\"\"\"\n    return round(amount * rate, 2)\n\n\ndef calculate_discount(amount, percent):\n    \"\"\"Apply a percentage discount.\"\"\"\n    return round(amount * (1 - percent / 100), 2)\n",
+    "key_elements": [
+      {"description": "calculate_tax function present", "pattern": "def calculate_tax(amount, rate=0.1):"},
+      {"description": "calculate_tax body correct", "pattern": "return round(amount * rate, 2)"},
+      {"description": "calculate_discount function present", "pattern": "def calculate_discount(amount, percent):"},
+      {"description": "calculate_discount body correct", "pattern": "return round(amount * (1 - percent / 100), 2)"}
+    ]
+  },
+  {
+    "id": "easy_002",
+    "difficulty": "easy",
+    "title": "Both sides added different imports",
+    "description": "Two branches each added a new import to the top of a module. Both imports are needed.",
+    "file_path": "services/data_pipeline.py",
+    "language": "python",
+    "ours_description": "Added pandas import for data processing (PR #30: CSV export feature)",
+    "theirs_description": "Added requests import for API fetching (PR #33: API data source)",
+    "base_content": "import os\nimport json\nfrom pathlib import Path\n\n\ndef process_data(source):\n    raw = Path(source).read_text()\n    return json.loads(raw)\n",
+    "conflict_file": "import os\nimport json\nfrom pathlib import Path\n<<<<<<< HEAD\nimport pandas as pd\n=======\nimport requests\n>>>>>>> feature/api-source\n\n\ndef process_data(source):\n    raw = Path(source).read_text()\n    return json.loads(raw)\n",
+    "gold_resolution": "import os\nimport json\nfrom pathlib import Path\nimport pandas as pd\nimport requests\n\n\ndef process_data(source):\n    raw = Path(source).read_text()\n    return json.loads(raw)\n",
+    "key_elements": [
+      {"description": "pandas import present", "pattern": "import pandas as pd"},
+      {"description": "requests import present", "pattern": "import requests"},
+      {"description": "original imports preserved", "pattern": "from pathlib import Path"},
+      {"description": "process_data function preserved", "pattern": "def process_data(source):"}
+    ]
+  },
+  {
+    "id": "easy_003",
+    "difficulty": "easy",
+    "title": "Both sides added entries to a JSON config list",
+    "description": "Two developers each added a new allowed origin to the CORS configuration. Both origins should be kept.",
+    "file_path": "config/cors.json",
+    "language": "json",
+    "ours_description": "Added staging domain to allowed origins (PR #61: Staging environment)",
+    "theirs_description": "Added partner API domain to allowed origins (PR #64: Partner integration)",
+    "base_content": "{\n  \"allowed_origins\": [\n    \"https://app.example.com\",\n    \"https://admin.example.com\"\n  ],\n  \"allow_credentials\": true,\n  \"max_age\": 3600\n}\n",
+    "conflict_file": "{\n  \"allowed_origins\": [\n    \"https://app.example.com\",\n    \"https://admin.example.com\",\n<<<<<<< HEAD\n    \"https://staging.example.com\"\n=======\n    \"https://api.partner.io\"\n>>>>>>> feature/partner-api\n  ],\n  \"allow_credentials\": true,\n  \"max_age\": 3600\n}\n",
+    "gold_resolution": "{\n  \"allowed_origins\": [\n    \"https://app.example.com\",\n    \"https://admin.example.com\",\n    \"https://staging.example.com\",\n    \"https://api.partner.io\"\n  ],\n  \"allow_credentials\": true,\n  \"max_age\": 3600\n}\n",
+    "key_elements": [
+      {"description": "staging domain present", "pattern": "https://staging.example.com"},
+      {"description": "partner domain present", "pattern": "https://api.partner.io"},
+      {"description": "original domains preserved", "pattern": "https://admin.example.com"},
+      {"description": "valid JSON structure", "pattern": "\"allow_credentials\": true"}
+    ]
+  },
+  {
+    "id": "easy_004",
+    "difficulty": "easy",
+    "title": "One side updated a docstring, other updated the code",
+    "description": "One developer improved the function's docstring while another fixed a bug in the function body. Both changes are non-overlapping and should coexist.",
+    "file_path": "lib/validators.py",
+    "language": "python",
+    "ours_description": "Improved docstring with parameter descriptions (PR #18: Docs cleanup)",
+    "theirs_description": "Fixed off-by-one error in email validation (PR #21: Email validation bugfix)",
+    "base_content": "def validate_email(email):\n    \"\"\"Validate an email address.\"\"\"\n    if \"@\" not in email:\n        return False\n    local, domain = email.split(\"@\", 1)\n    if len(local) < 1:\n        return False\n    return \".\" in domain\n",
+    "conflict_file": "<<<<<<< HEAD\ndef validate_email(email):\n    \"\"\"Validate an email address.\n\n    Args:\n        email: The email address string to validate.\n\n    Returns:\n        True if the email address is valid, False otherwise.\n    \"\"\"\n    if \"@\" not in email:\n        return False\n    local, domain = email.split(\"@\", 1)\n    if len(local) < 1:\n        return False\n    return \".\" in domain\n=======\ndef validate_email(email):\n    \"\"\"Validate an email address.\"\"\"\n    if not isinstance(email, str) or \"@\" not in email:\n        return False\n    local, domain = email.split(\"@\", 1)\n    if len(local) < 1 or len(domain) < 3:\n        return False\n    return \".\" in domain\n>>>>>>> fix/email-validation\n",
+    "gold_resolution": "def validate_email(email):\n    \"\"\"Validate an email address.\n\n    Args:\n        email: The email address string to validate.\n\n    Returns:\n        True if the email address is valid, False otherwise.\n    \"\"\"\n    if not isinstance(email, str) or \"@\" not in email:\n        return False\n    local, domain = email.split(\"@\", 1)\n    if len(local) < 1 or len(domain) < 3:\n        return False\n    return \".\" in domain\n",
+    "key_elements": [
+      {"description": "expanded docstring with Args section", "pattern": "Args:"},
+      {"description": "expanded docstring with Returns section", "pattern": "Returns:"},
+      {"description": "isinstance check from bugfix", "pattern": "not isinstance(email, str)"},
+      {"description": "domain length check from bugfix", "pattern": "len(domain) < 3"}
+    ]
+  },
+  {
+    "id": "easy_005",
+    "difficulty": "easy",
+    "title": "Both sides bumped different dependency versions",
+    "description": "Two branches each upgraded a different dependency in requirements.txt. Both upgrades are independent.",
+    "file_path": "requirements.txt",
+    "language": "text",
+    "ours_description": "Upgraded Flask to 3.1.0 for security patch (PR #77: Dependency updates)",
+    "theirs_description": "Upgraded SQLAlchemy to 2.1.0 for async support (PR #80: Async DB layer)",
+    "base_content": "flask==3.0.0\nsqlalchemy==2.0.25\nredis==5.0.1\npydantic==2.5.0\ncelery==5.3.4\n",
+    "conflict_file": "<<<<<<< HEAD\nflask==3.1.0\nsqlalchemy==2.0.25\n=======\nflask==3.0.0\nsqlalchemy==2.1.0\n>>>>>>> feature/async-db\nredis==5.0.1\npydantic==2.5.0\ncelery==5.3.4\n",
+    "gold_resolution": "flask==3.1.0\nsqlalchemy==2.1.0\nredis==5.0.1\npydantic==2.5.0\ncelery==5.3.4\n",
+    "key_elements": [
+      {"description": "flask upgraded to 3.1.0", "pattern": "flask==3.1.0"},
+      {"description": "sqlalchemy upgraded to 2.1.0", "pattern": "sqlalchemy==2.1.0"},
+      {"description": "redis version preserved", "pattern": "redis==5.0.1"},
+      {"description": "celery version preserved", "pattern": "celery==5.3.4"}
+    ]
+  }
+]

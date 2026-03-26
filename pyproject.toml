@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openenv-git-conflict-env"
+version = "0.1.0"
+description = "Git Merge Conflict Resolution environment for OpenEnv — trains agents to resolve real git conflicts"
+requires-python = ">=3.10"
+dependencies = [
+    "openenv-core[core]>=0.2.1",
+    "openai>=1.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+server = "git_conflict_env.server.app:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["git_conflict_env", "git_conflict_env.server", "git_conflict_env.tasks"]
+package-dir = { "git_conflict_env" = ".", "git_conflict_env.server" = "server", "git_conflict_env.tasks" = "tasks" }
+
+[tool.setuptools.package-data]
+"git_conflict_env.tasks" = ["*.json"]
