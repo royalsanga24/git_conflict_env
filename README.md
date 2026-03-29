@@ -174,6 +174,14 @@ python baseline.py
 python baseline.py --model gpt-4o-mini
 ```
 
+Some automated submission checks require **`inference.py` at the repo root**. It runs the same baseline as `baseline.py`:
+
+```bash
+export OPENAI_API_KEY=sk-...
+python inference.py
+python inference.py --json
+```
+
 ### Deploy to Hugging Face Spaces
 
 ```bash
@@ -236,6 +244,7 @@ git_conflict_env/
 ├── models.py                # ConflictAction, ConflictObservation, ConflictState
 ├── client.py                # GitConflictEnv WebSocket client
 ├── baseline.py              # Standalone baseline inference script
+├── inference.py             # Same baseline (required at root for some validators)
 ├── openenv.yaml             # OpenEnv manifest
 ├── pyproject.toml           # Package configuration
 ├── tasks/
