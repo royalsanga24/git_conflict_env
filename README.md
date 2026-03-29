@@ -159,9 +159,12 @@ uvicorn server.app:app --host 0.0.0.0 --port 8000
 
 ```bash
 cd git_conflict_env
-docker build -t git-conflict-env:latest -f server/Dockerfile .
+# Root Dockerfile is a symlink to server/Dockerfile so CI can run: docker build .
+docker build -t git-conflict-env:latest .
 docker run -p 8000:8000 git-conflict-env:latest
 ```
+
+(Alternatively: `docker build -t git-conflict-env:latest -f server/Dockerfile .`)
 
 ### Run Baseline
 
@@ -177,6 +180,8 @@ python baseline.py --model gpt-4o-mini
 cd git_conflict_env
 openenv push --repo-id yourname/git-conflict-env
 ```
+
+Before submitting a hackathon form, confirm your Space responds: `curl -sS https://YOURNAME-YOUR-SPACE.hf.space/health` should return HTTP 200 and `{"status":"healthy"}`.
 
 ## API Endpoints
 
@@ -226,6 +231,7 @@ Baseline run using `gpt-4o` with `temperature=0` for reproducibility:
 
 ```
 git_conflict_env/
+├── Dockerfile               # Symlink → server/Dockerfile (for `docker build .`)
 ├── __init__.py              # Package exports
 ├── models.py                # ConflictAction, ConflictObservation, ConflictState
 ├── client.py                # GitConflictEnv WebSocket client
@@ -237,11 +243,11 @@ git_conflict_env/
 │   ├── medium.json          # 5 medium conflict scenarios
 │   └── hard.json            # 5 hard conflict scenarios
 └── server/
-    ├── environment.py       # Core reset/step/state logic
+    ├── git_conflict_env_environment.py  # Core reset/step/state logic
     ├── grader.py            # Deterministic scoring engine
     ├── task_loader.py       # Task index and lookup
     ├── baseline_runner.py   # Inference logic for /baseline
     ├── app.py               # FastAPI application
-    ├── Dockerfile           # Container definition
+    ├── Dockerfile           # Container definition (canonical)
     └── requirements.txt     # Server dependencies
 ```
