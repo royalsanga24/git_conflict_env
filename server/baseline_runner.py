@@ -70,6 +70,7 @@ def resolve_one(client: OpenAI, task: dict, model: str = "gpt-4o") -> str:
 def run_all_tasks(
     api_key: str,
     model: str = "gpt-4o",
+    base_url: str | None = None,
 ) -> Dict[str, Any]:
     """
     Run baseline inference over every task and return structured results.
@@ -81,7 +82,10 @@ def run_all_tasks(
           "tasks": [ {id, difficulty, score, feedback}, ... ]
         }
     """
-    client = OpenAI(api_key=api_key)
+    client_kwargs: Dict[str, Any] = {"api_key": api_key}
+    if base_url:
+        client_kwargs["base_url"] = base_url
+    client = OpenAI(**client_kwargs)
     all_tasks = get_all_tasks()
 
     task_results: List[Dict[str, Any]] = []

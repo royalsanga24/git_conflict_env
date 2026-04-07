@@ -5,7 +5,10 @@ from typing import Any, Dict
 from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 
-from .models import ConflictAction, ConflictObservation, ConflictState
+try:
+    from .models import ConflictAction, ConflictObservation, ConflictState
+except (ImportError, ModuleNotFoundError):
+    from models import ConflictAction, ConflictObservation, ConflictState
 
 
 class GitConflictEnv(
