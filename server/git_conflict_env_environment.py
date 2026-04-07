@@ -78,7 +78,7 @@ class GitConflictEnvironment(Environment):
 
         return ConflictObservation(
             done=False,
-            reward=0.0,
+            reward=MIN_STRICT_SCORE,
             task_id=task["id"],
             difficulty=task["difficulty"],
             file_path=task["file_path"],
@@ -97,7 +97,7 @@ class GitConflictEnvironment(Environment):
         if self._current_task is None:
             return ConflictObservation(
                 done=True,
-                reward=0.0,
+                reward=MIN_STRICT_SCORE,
                 feedback="ERROR: No active task. Call reset() first.",
                 attempts_remaining=0,
             )
@@ -105,7 +105,7 @@ class GitConflictEnvironment(Environment):
         if self._state.resolved:
             return ConflictObservation(
                 done=True,
-                reward=0.0,
+                reward=MIN_STRICT_SCORE,
                 task_id=self._state.current_task_id,
                 difficulty=self._state.current_difficulty,
                 feedback="Episode already finished. Call reset() to start a new one.",

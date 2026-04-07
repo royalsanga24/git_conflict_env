@@ -131,7 +131,7 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
     rewards: List[float] = []
     steps_taken = 0
     success = False
-    score = 0.0
+    score = MIN_TASK_SCORE
 
     log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
 
@@ -153,7 +153,7 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
                 resolution = get_model_resolution(client, result.observation, feedback)
                 result = env.step(ConflictAction(resolution=resolution, explanation=""))
 
-                reward = float(result.reward or 0.0)
+                reward = min(max(float(result.reward or MIN_TASK_SCORE), MIN_TASK_SCORE), MAX_TASK_SCORE)
                 done = bool(result.done)
                 feedback = getattr(result.observation, 'feedback', '')
 
@@ -165,13 +165,14 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
                 if done:
                     break
 
-            raw_score = max(rewards) if rewards else 0.0
+            raw_score = max(rewards) if rewards else MIN_TASK_SCORE
             # Validator requires each task score strictly within (0, 1).
             score = min(max(raw_score, MIN_TASK_SCORE), MAX_TASK_SCORE)
             success = score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception as exc:
-        log_step(step=steps_taken + 1, action='', reward=0.0, done=True, error=str(exc))
+        score = MIN_TASK_SCORE
+        log_step(step=steps_taken + 1, action='', reward=MIN_TASK_SCORE, done=True, error=str(exc))
 
     log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
     return {'task_id': task_id, 'score': round(score, 4), 'steps': steps_taken, 'success': success}
