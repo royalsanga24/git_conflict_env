@@ -34,6 +34,8 @@ ENV_BASE_URL = os.getenv("ENV_BASE_URL", "http://localhost:8000").rstrip("/")
 BENCHMARK = "git_conflict_env"
 MAX_STEPS = 3
 SUCCESS_SCORE_THRESHOLD = 0.5
+MIN_TASK_SCORE = 0.0001
+MAX_TASK_SCORE = 0.9999
 
 TASK_IDS = [
     "easy_001", "easy_002", "easy_003", "easy_004", "easy_005",
@@ -163,7 +165,9 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
                 if done:
                     break
 
-            score = max(rewards) if rewards else 0.0
+            raw_score = max(rewards) if rewards else 0.0
+            # Validator requires each task score strictly within (0, 1).
+            score = min(max(raw_score, MIN_TASK_SCORE), MAX_TASK_SCORE)
             success = score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception as exc:
