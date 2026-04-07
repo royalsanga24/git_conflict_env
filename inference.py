@@ -3,9 +3,13 @@
 Inference script for the Git Conflict Resolution Environment.
 
 Hackathon env vars:
-  API_BASE_URL  - environment endpoint
+  API_BASE_URL  - LiteLLM proxy endpoint for OpenAI client (required)
+  API_KEY       - LiteLLM proxy key (required)
   MODEL_NAME    - model identifier
-  HF_TOKEN      - API key (used for OpenAI calls)
+  LOCAL_IMAGE_NAME - optional local Docker image for environment execution
+
+Local testing env var:
+  ENV_BASE_URL  - environment server URL (default: http://localhost:8000)
 
 Emits structured [START], [STEP], [END] logs.
 """
@@ -21,10 +25,11 @@ from openai import OpenAI
 from client import GitConflictEnv
 from models import ConflictAction
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
+API_BASE_URL = os.getenv("API_BASE_URL", "").rstrip("/")
+API_KEY = os.getenv("API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN")
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
+ENV_BASE_URL = os.getenv("ENV_BASE_URL", "http://localhost:8000").rstrip("/")
 
 BENCHMARK = "git_conflict_env"
 MAX_STEPS = 3
@@ -129,7 +134,13 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
     log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
 
     try:
-        with GitConflictEnv(base_url=API_BASE_URL).sync() as env:
+        env_client = (
+            GitConflictEnv.from_docker_image(LOCAL_IMAGE_NAME)
+            if LOCAL_IMAGE_NAME
+            else GitConflictEnv(base_url=ENV_BASE_URL)
+        )
+
+        with env_client.sync() as env:
             result = env.reset(task_id=task_id)
             feedback = ""
 
@@ -163,11 +174,14 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
 
 
 def main() -> None:
-    if not HF_TOKEN:
-        print("[DEBUG] Warning: HF_TOKEN is not set; LLM calls will fail and use fallback.", flush=True)
+    if not API_BASE_URL or not API_KEY:
+        print("[DEBUG] Warning: API_BASE_URL/API_KEY missing; proxy LLM call will fail and fallback will be used.", flush=True)
 
-    # Checklist-compliant OpenAI client config via required variables.
-    llm_client = OpenAI(api_key=HF_TOKEN or "sk-placeholder")
+    # Required by validator: use injected LiteLLM proxy variables exactly.
+    llm_client = OpenAI(
+        base_url=API_BASE_URL or "https://invalid.local",
+        api_key=API_KEY or "invalid-key",
+    )
 
     summary = [run_task(task_id, llm_client) for task_id in TASK_IDS]
     overall = sum(item['score'] for item in summary) / len(summary) if summary else 0.0
