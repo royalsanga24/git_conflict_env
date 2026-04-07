@@ -26,6 +26,8 @@ W_SYNTAX = 0.15
 W_ELEMENTS = 0.35
 W_SIMILARITY = 0.15
 W_EXACT = 0.25
+MIN_STRICT_SCORE = 0.0001
+MAX_STRICT_SCORE = 0.9999
 
 
 def grade(agent_resolution: str, task: dict) -> Tuple[float, str]:
@@ -67,7 +69,8 @@ def grade(agent_resolution: str, task: dict) -> Tuple[float, str]:
     score += exact_score
     feedback.append(exact_fb)
 
-    final_score = round(min(score, 1.0), 4)
+    # Phase-2 validator requires strict (0, 1) task scores.
+    final_score = round(min(max(score, MIN_STRICT_SCORE), MAX_STRICT_SCORE), 4)
     return final_score, "\n".join(feedback)
 
 
