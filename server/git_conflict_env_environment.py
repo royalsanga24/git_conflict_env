@@ -25,6 +25,8 @@ except (ImportError, ModuleNotFoundError):
 
 MAX_ATTEMPTS = 3
 ATTEMPT_MULTIPLIERS = {1: 1.0, 2: 0.8, 3: 0.6}
+MIN_STRICT_SCORE = 0.0001
+MAX_STRICT_SCORE = 0.9999
 
 
 class GitConflictEnvironment(Environment):
@@ -120,6 +122,8 @@ class GitConflictEnvironment(Environment):
 
         multiplier = ATTEMPT_MULTIPLIERS.get(attempt, 0.5)
         adjusted_score = round(raw_score * multiplier, 4)
+        # Phase-2 validator requires strict (0, 1) scores/rewards.
+        adjusted_score = min(max(adjusted_score, MIN_STRICT_SCORE), MAX_STRICT_SCORE)
 
         if adjusted_score > self._state.best_score:
             self._state.best_score = adjusted_score
