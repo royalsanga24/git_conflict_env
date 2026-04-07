@@ -21,11 +21,10 @@ from openai import OpenAI
 from client import GitConflictEnv
 from models import ConflictAction
 
-API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000").rstrip("/")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
-API_KEY = os.environ.get("OPENAI_API_KEY", "") or HF_TOKEN
-OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+HF_TOKEN = os.getenv("HF_TOKEN")
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
 BENCHMARK = "git_conflict_env"
 MAX_STEPS = 3
@@ -164,13 +163,11 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
 
 
 def main() -> None:
-    if not API_KEY:
-        print('[DEBUG] Warning: missing HF_TOKEN/OPENAI_API_KEY; LLM calls will fail and use fallback.', flush=True)
+    if not HF_TOKEN:
+        print("[DEBUG] Warning: HF_TOKEN is not set; LLM calls will fail and use fallback.", flush=True)
 
-    kwargs: Dict[str, Any] = {'api_key': API_KEY or 'sk-placeholder'}
-    if OPENAI_BASE_URL:
-        kwargs['base_url'] = OPENAI_BASE_URL
-    llm_client = OpenAI(**kwargs)
+    # Checklist-compliant OpenAI client config via required variables.
+    llm_client = OpenAI(api_key=HF_TOKEN or "sk-placeholder")
 
     summary = [run_task(task_id, llm_client) for task_id in TASK_IDS]
     overall = sum(item['score'] for item in summary) / len(summary) if summary else 0.0
