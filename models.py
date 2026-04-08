@@ -10,6 +10,10 @@ from typing import Dict, List, Optional
 from openenv.core.env_server.types import Action, Observation, State
 from pydantic import Field
 
+# Phase-2 validators require every emitted score/reward to lie strictly in (0, 1).
+STRICT_SCORE_MIN = 0.0001
+STRICT_SCORE_MAX = 0.9999
+
 
 class ConflictAction(Action):
     """Action submitted by the agent: a proposed conflict resolution."""
@@ -31,7 +35,10 @@ class ConflictObservation(Observation):
     base_content: Optional[str] = Field(default=None, description="Common ancestor content (provided for medium+hard)")
     feedback: str = Field(default="", description="Grader feedback after a step submission")
     attempts_remaining: int = Field(default=3, description="Number of resolution attempts left")
-    score: Optional[float] = Field(default=None, description="Grader score (0.0-1.0) after submission")
+    score: Optional[float] = Field(
+        default=None,
+        description=f"Grader score in open interval ({STRICT_SCORE_MIN}, {STRICT_SCORE_MAX}) after submission",
+    )
 
 
 class ConflictState(State):
@@ -40,6 +47,9 @@ class ConflictState(State):
     current_task_id: str = ""
     current_difficulty: str = ""
     resolved: bool = False
-    best_score: float = 0.0
+    best_score: float = Field(
+        default=STRICT_SCORE_MIN,
+        description="Best score so far; never 0.0 (strict open interval for validators).",
+    )
     attempt_number: int = 0
     max_attempts: int = 3

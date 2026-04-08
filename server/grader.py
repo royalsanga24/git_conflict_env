@@ -19,6 +19,11 @@ import re
 from difflib import SequenceMatcher
 from typing import List, Tuple
 
+try:
+    from ..models import STRICT_SCORE_MAX, STRICT_SCORE_MIN
+except (ImportError, ModuleNotFoundError):
+    from models import STRICT_SCORE_MAX, STRICT_SCORE_MIN
+
 CONFLICT_MARKERS = ["<<<<<<<", "=======", ">>>>>>>"]
 
 W_MARKERS = 0.10
@@ -26,8 +31,8 @@ W_SYNTAX = 0.15
 W_ELEMENTS = 0.35
 W_SIMILARITY = 0.15
 W_EXACT = 0.25
-MIN_STRICT_SCORE = 0.0001
-MAX_STRICT_SCORE = 0.9999
+MIN_STRICT_SCORE = STRICT_SCORE_MIN
+MAX_STRICT_SCORE = STRICT_SCORE_MAX
 
 
 def grade(agent_resolution: str, task: dict) -> Tuple[float, str]:

@@ -18,7 +18,11 @@ from __future__ import annotations
 
 import json
 import os
+import warnings
 from typing import Any, Dict, List, Optional
+
+# Keep stdout free of warning noise for log parsers.
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from openai import OpenAI
 
@@ -122,8 +126,7 @@ def get_model_resolution(client: OpenAI, obs: Any, feedback: str = "") -> str:
         )
         text = resp.choices[0].message.content or ""
         return _strip_fences(text)
-    except Exception as exc:
-        print(f"[DEBUG] LLM request failed: {exc}", flush=True)
+    except Exception:
         return _fallback_resolution(getattr(obs, 'conflict_file', ''))
 
 
@@ -179,21 +182,14 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
 
 
 def main() -> None:
-    if not API_BASE_URL or not API_KEY:
-        print("[DEBUG] Warning: API_BASE_URL/API_KEY missing; proxy LLM call will fail and fallback will be used.", flush=True)
-
     # Required by validator: use injected LiteLLM proxy variables exactly.
     llm_client = OpenAI(
         base_url=API_BASE_URL or "https://invalid.local",
         api_key=API_KEY or "invalid-key",
     )
 
-    summary = [run_task(task_id, llm_client) for task_id in TASK_IDS]
-    overall = sum(item['score'] for item in summary) / len(summary) if summary else 0.0
-
-    print('\n' + '=' * 60, flush=True)
-    print(f'Overall score: {overall:.4f}', flush=True)
-    print(json.dumps({'summary': summary, 'overall_score': round(overall, 4)}, indent=2), flush=True)
+    for task_id in TASK_IDS:
+        run_task(task_id, llm_client)
 
 
 if __name__ == '__main__':

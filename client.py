@@ -6,9 +6,19 @@ from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 
 try:
-    from .models import ConflictAction, ConflictObservation, ConflictState
+    from .models import (
+        ConflictAction,
+        ConflictObservation,
+        ConflictState,
+        STRICT_SCORE_MIN,
+    )
 except (ImportError, ModuleNotFoundError):
-    from models import ConflictAction, ConflictObservation, ConflictState
+    from models import (
+        ConflictAction,
+        ConflictObservation,
+        ConflictState,
+        STRICT_SCORE_MIN,
+    )
 
 
 class GitConflictEnv(
@@ -66,7 +76,7 @@ class GitConflictEnv(
             current_task_id=payload.get("current_task_id", ""),
             current_difficulty=payload.get("current_difficulty", ""),
             resolved=payload.get("resolved", False),
-            best_score=payload.get("best_score", 0.0),
+            best_score=payload.get("best_score", STRICT_SCORE_MIN),
             attempt_number=payload.get("attempt_number", 0),
             max_attempts=payload.get("max_attempts", 3),
         )

@@ -13,9 +13,14 @@ from typing import Any, Dict, List
 from openai import OpenAI
 
 try:
+    from ..models import STRICT_SCORE_MIN
     from .grader import grade
     from .task_loader import get_all_tasks
 except (ImportError, ModuleNotFoundError):
+    try:
+        from models import STRICT_SCORE_MIN
+    except ImportError:
+        STRICT_SCORE_MIN = 0.0001
     from grader import grade
     from task_loader import get_all_tasks
 
@@ -107,10 +112,12 @@ def run_all_tasks(
     all_scores = []
     for diff in ("easy", "medium", "hard"):
         scores = by_difficulty[diff]
-        avg = round(sum(scores) / len(scores), 4) if scores else 0.0
+        avg = round(sum(scores) / len(scores), 4) if scores else STRICT_SCORE_MIN
         summary[diff] = avg
         all_scores.extend(scores)
-    summary["overall"] = round(sum(all_scores) / len(all_scores), 4) if all_scores else 0.0
+    summary["overall"] = (
+        round(sum(all_scores) / len(all_scores), 4) if all_scores else STRICT_SCORE_MIN
+    )
 
     return {
         "model": model,

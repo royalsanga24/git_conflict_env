@@ -12,9 +12,21 @@ from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
 try:
-    from ..models import ConflictAction, ConflictObservation, ConflictState
+    from ..models import (
+        ConflictAction,
+        ConflictObservation,
+        ConflictState,
+        STRICT_SCORE_MAX,
+        STRICT_SCORE_MIN,
+    )
 except (ImportError, ModuleNotFoundError):
-    from models import ConflictAction, ConflictObservation, ConflictState
+    from models import (
+        ConflictAction,
+        ConflictObservation,
+        ConflictState,
+        STRICT_SCORE_MAX,
+        STRICT_SCORE_MIN,
+    )
 
 try:
     from .grader import grade
@@ -25,8 +37,8 @@ except (ImportError, ModuleNotFoundError):
 
 MAX_ATTEMPTS = 3
 ATTEMPT_MULTIPLIERS = {1: 1.0, 2: 0.8, 3: 0.6}
-MIN_STRICT_SCORE = 0.0001
-MAX_STRICT_SCORE = 0.9999
+MIN_STRICT_SCORE = STRICT_SCORE_MIN
+MAX_STRICT_SCORE = STRICT_SCORE_MAX
 
 
 class GitConflictEnvironment(Environment):
@@ -69,7 +81,7 @@ class GitConflictEnvironment(Environment):
             current_task_id=task["id"],
             current_difficulty=task["difficulty"],
             resolved=False,
-            best_score=0.0,
+            best_score=MIN_STRICT_SCORE,
             attempt_number=0,
             max_attempts=MAX_ATTEMPTS,
         )
