@@ -96,9 +96,9 @@ def get_grader() -> Dict[str, Any]:
             "exact_match": 0.25,
         },
         "attempt_multipliers": {
-            "attempt_1": "1.0x",
-            "attempt_2": "0.8x",
-            "attempt_3": "0.6x",
+            "attempt_1": "x1",
+            "attempt_2": "x0.8",
+            "attempt_3": "x0.6",
         },
     }
 

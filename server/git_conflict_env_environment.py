@@ -158,11 +158,14 @@ class GitConflictEnvironment(Environment):
             self._state.resolved = True
 
         if is_perfect:
-            header = f"Score: {adjusted_score:.2f}/1.00 (attempt {attempt}, multiplier {multiplier}x) - PERFECT"
+            header = f"Score: {adjusted_score:.2f} (attempt {attempt}, multiplier x{multiplier:g}) - PERFECT"
         elif is_done:
-            header = f"Score: {adjusted_score:.2f}/1.00 (attempt {attempt}, multiplier {multiplier}x) - Final attempt"
+            header = f"Score: {adjusted_score:.2f} (attempt {attempt}, multiplier x{multiplier:g}) - Final attempt"
         else:
-            header = f"Score: {adjusted_score:.2f}/1.00 (attempt {attempt}, multiplier {multiplier}x) - {attempts_left} attempt(s) remaining"
+            header = (
+                f"Score: {adjusted_score:.2f} (attempt {attempt}, multiplier x{multiplier:g}) - "
+                f"{attempts_left} attempt(s) remaining"
+            )
 
         full_feedback = f"{header}\n\n{feedback}"
 

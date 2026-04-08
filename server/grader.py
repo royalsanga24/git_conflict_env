@@ -87,7 +87,7 @@ def _check_markers(text: str) -> Tuple[float, str]:
     found = [m for m in CONFLICT_MARKERS if m in text]
     if not found:
         return W_MARKERS, f"[+{W_MARKERS:.2f}] PASS: All conflict markers removed"
-    return 0.0, f"[+0.00] FAIL: Conflict markers still present: {', '.join(found)}"
+    return 0.0, f"[+none] FAIL: Conflict markers still present: {', '.join(found)}"
 
 
 def _check_syntax(text: str, language: str) -> Tuple[float, str]:
@@ -102,7 +102,7 @@ def _check_syntax(text: str, language: str) -> Tuple[float, str]:
     # the output is non-empty and has no conflict markers.
     if text.strip():
         return W_SYNTAX, f"[+{W_SYNTAX:.2f}] PASS: Non-empty output (syntax not checked for {lang})"
-    return 0.0, f"[+0.00] FAIL: Empty output"
+    return 0.0, "[+none] FAIL: Empty output"
 
 
 def _syntax_python(text: str) -> Tuple[float, str]:
@@ -110,7 +110,7 @@ def _syntax_python(text: str) -> Tuple[float, str]:
         ast.parse(text)
         return W_SYNTAX, f"[+{W_SYNTAX:.2f}] PASS: Valid Python syntax"
     except SyntaxError as e:
-        return 0.0, f"[+0.00] FAIL: Python syntax error at line {e.lineno}: {e.msg}"
+        return 0.0, f"[+none] FAIL: Python syntax error at line {e.lineno}: {e.msg}"
 
 
 def _syntax_json(text: str) -> Tuple[float, str]:
@@ -118,7 +118,7 @@ def _syntax_json(text: str) -> Tuple[float, str]:
         json.loads(text)
         return W_SYNTAX, f"[+{W_SYNTAX:.2f}] PASS: Valid JSON"
     except json.JSONDecodeError as e:
-        return 0.0, f"[+0.00] FAIL: Invalid JSON: {e.msg} (line {e.lineno})"
+        return 0.0, f"[+none] FAIL: Invalid JSON: {e.msg} (line {e.lineno})"
 
 
 def _syntax_yaml(text: str) -> Tuple[float, str]:
@@ -127,14 +127,14 @@ def _syntax_yaml(text: str) -> Tuple[float, str]:
         yaml.safe_load(text)
         return W_SYNTAX, f"[+{W_SYNTAX:.2f}] PASS: Valid YAML"
     except Exception as e:
-        return 0.0, f"[+0.00] FAIL: Invalid YAML: {e}"
+        return 0.0, f"[+none] FAIL: Invalid YAML: {e}"
 
 
 def _check_key_elements(
     text: str, key_elements: List[dict]
 ) -> Tuple[float, List[str]]:
     if not key_elements:
-        return 0.0, ["[+0.00] SKIP: No key elements defined"]
+        return 0.0, ["[+none] SKIP: No key elements defined"]
 
     found = 0
     feedback: List[str] = []
@@ -172,7 +172,7 @@ def _check_similarity(agent: str, gold: str) -> Tuple[float, str]:
 def _check_exact_match(agent: str, gold: str) -> Tuple[float, str]:
     if _normalize(agent) == _normalize(gold):
         return W_EXACT, f"[+{W_EXACT:.2f}] PERFECT: Exact match with expected resolution"
-    return 0.0, "[+0.00] No exact match"
+    return 0.0, "[+none] No exact match"
 
 
 # ---------------------------------------------------------------------------
