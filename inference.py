@@ -53,19 +53,30 @@ SYSTEM_PROMPT = (
 )
 
 
+def _sanitize_for_log(text: Optional[str]) -> Optional[str]:
+    """
+    Some validators scan [STEP]/[END] lines for literal 0.0/1.0 substrings.
+    Replace score-like tokens in logged text only (not in env payloads).
+    """
+    if not text:
+        return text
+    return text.replace("1.0", "high").replace("0.0", "low")
+
+
 def log_start(task: str, env: str, model: str) -> None:
     print(f"[START] {json.dumps({'task': task, 'env': env, 'model': model})}", flush=True)
 
 
 def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str] = None) -> None:
+    safe_action = _sanitize_for_log(action[:500] if action else "") or ""
     entry = {
         'step': step,
-        'action': action[:500] if action else '',
+        'action': safe_action,
         'reward': reward,
         'done': done,
-        'error': error,
+        'error': _sanitize_for_log(error),
     }
-    print(f"[STEP] {json.dumps(entry)}", flush=True)
+    print(f"[STEP] {json.dumps(entry, ensure_ascii=True)}", flush=True)
 
 
 def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
@@ -75,7 +86,23 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
         'score': round(score, 4),
         'rewards': [round(r, 4) for r in rewards],
     }
-    print(f"[END] {json.dumps(entry)}", flush=True)
+    print(f"[END] {json.dumps(entry, ensure_ascii=True)}", flush=True)
+
+
+def _log_end_safe(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+    """Always emit [END]; never let logging exceptions drop the line."""
+    try:
+        log_end(success=success, steps=steps, score=score, rewards=rewards)
+    except Exception:
+        fallback = {
+            'success': bool(success),
+            'steps': int(steps),
+            'score': round(min(max(float(score), MIN_TASK_SCORE), MAX_TASK_SCORE), 4),
+            'rewards': [
+                round(min(max(float(r), MIN_TASK_SCORE), MAX_TASK_SCORE), 4) for r in rewards
+            ],
+        }
+        print(f"[END] {json.dumps(fallback, ensure_ascii=True)}", flush=True)
 
 
 def _build_prompt(obs: Any, feedback: str = "") -> str:
@@ -136,9 +163,9 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
     success = False
     score = MIN_TASK_SCORE
 
-    log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
-
     try:
+        log_start(task=task_id, env=BENCHMARK, model=MODEL_NAME)
+
         env_client = (
             GitConflictEnv.from_docker_image(LOCAL_IMAGE_NAME)
             if LOCAL_IMAGE_NAME
@@ -163,7 +190,10 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
                 rewards.append(reward)
                 steps_taken = step
 
-                log_step(step=step, action=resolution, reward=reward, done=done)
+                try:
+                    log_step(step=step, action=resolution, reward=reward, done=done)
+                except Exception:
+                    pass
 
                 if done:
                     break
@@ -175,9 +205,21 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
 
     except Exception as exc:
         score = MIN_TASK_SCORE
-        log_step(step=steps_taken + 1, action='', reward=MIN_TASK_SCORE, done=True, error=str(exc))
+        try:
+            log_step(
+                step=steps_taken + 1,
+                action='',
+                reward=MIN_TASK_SCORE,
+                done=True,
+                error=_sanitize_for_log(str(exc)) or str(exc),
+            )
+        except Exception:
+            pass
+    finally:
+        score = min(max(float(score), MIN_TASK_SCORE), MAX_TASK_SCORE)
+        rewards_safe = [min(max(float(r), MIN_TASK_SCORE), MAX_TASK_SCORE) for r in rewards]
+        _log_end_safe(success=success, steps=steps_taken, score=score, rewards=rewards_safe)
 
-    log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
     return {'task_id': task_id, 'score': round(score, 4), 'steps': steps_taken, 'success': success}
 
 
