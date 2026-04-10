@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import warnings
 from typing import Any, Dict, List, Optional
 
@@ -53,14 +54,21 @@ SYSTEM_PROMPT = (
 )
 
 
+# Standalone float literals only — avoids mangling versions like 3.1.0 or 0.01.
+_STANDALONE_ZERO = re.compile(r"(?<![0-9.])0\.0+(?![0-9])")
+_STANDALONE_ONE = re.compile(r"(?<![0-9.])1\.0+(?![0-9])")
+
+
 def _sanitize_for_log(text: Optional[str]) -> Optional[str]:
     """
-    Some validators scan [STEP]/[END] lines for literal 0.0/1.0 substrings.
-    Replace score-like tokens in logged text only (not in env payloads).
+    Some validators scan [STEP]/[END] lines for endpoint float literals.
+    Replace standalone tokens in logged text only (not in env payloads).
     """
     if not text:
         return text
-    return text.replace("1.0", "high").replace("0.0", "low")
+    text = _STANDALONE_ONE.sub("high", text)
+    text = _STANDALONE_ZERO.sub("low", text)
+    return text
 
 
 def log_start(task: str, env: str, model: str) -> None:

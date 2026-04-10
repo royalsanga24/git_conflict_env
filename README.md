@@ -65,7 +65,7 @@ with GitConflictEnv(base_url="http://localhost:8000").sync() as env:
 | `base_content` | `str?` | Common ancestor (medium/hard only) |
 | `feedback` | `str` | Grader feedback after submission |
 | `attempts_remaining` | `int` | Remaining attempts (max 3) |
-| `score` | `float?` | Grader score 0.0-1.0 after submission |
+| `score` | `float?` | Grader score strictly inside (0, 1) after submission (clamped) |
 | `done` | `bool` | Whether episode is over |
 | `reward` | `float` | Attempt-adjusted reward |
 
@@ -127,9 +127,9 @@ Agents get up to 3 attempts per task with feedback after each. The maximum rewar
 
 | Attempt | Multiplier |
 |---|---|
-| 1 | 1.0x |
-| 2 | 0.8x |
-| 3 | 0.6x |
+| 1 | ×1 (full) |
+| 2 | ×0.8 |
+| 3 | ×0.6 |
 
 The episode ends when the agent achieves a perfect score or exhausts all attempts.
 
@@ -208,20 +208,20 @@ Before submitting a hackathon form, confirm your Space responds: `curl -sS https
 
 ## Baseline Scores
 
-Baseline run using `gpt-4o` with `temperature=0` for reproducibility:
+Baseline run using `gpt-4o` with `temperature=0` for reproducibility. Reported scores use the same **open interval (0, 1)** as the grader (near-perfect runs are documented as **0.9999** rather than the closed upper bound).
 
 | Task | Difficulty | Score |
 |---|---|---|
 | easy_001 | easy | 0.7497 |
-| easy_002 | easy | 1.0000 |
-| easy_003 | easy | 1.0000 |
-| easy_004 | easy | 1.0000 |
-| easy_005 | easy | 1.0000 |
+| easy_002 | easy | 0.9999 |
+| easy_003 | easy | 0.9999 |
+| easy_004 | easy | 0.9999 |
+| easy_005 | easy | 0.9999 |
 | medium_001 | medium | 0.7499 |
-| medium_002 | medium | 1.0000 |
+| medium_002 | medium | 0.9999 |
 | medium_003 | medium | 0.6763 |
 | medium_004 | medium | 0.7191 |
-| medium_005 | medium | 1.0000 |
+| medium_005 | medium | 0.9999 |
 | hard_001 | hard | 0.7454 |
 | hard_002 | hard | 0.5316 |
 | hard_003 | hard | 0.7497 |

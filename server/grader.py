@@ -1,7 +1,7 @@
 """
 Deterministic grader for the Git Conflict Resolution Environment.
 
-Scoring components (summed, capped at 1.0):
+Scoring components (summed, then clamped to the grader's open score interval):
   0.10  - All conflict markers removed
   0.15  - Output is syntactically valid for the file's language
   0.35  - Key elements from the task are present (proportional)
@@ -39,8 +39,8 @@ def grade(agent_resolution: str, task: dict) -> Tuple[float, str]:
     """
     Grade an agent's conflict resolution against a task's gold standard.
 
-    Returns (score, feedback) where score is in [0.0, 1.0] and feedback
-    is a multi-line human-readable breakdown.
+    Returns (score, feedback) where score is strictly inside
+    (STRICT_SCORE_MIN, STRICT_SCORE_MAX) and feedback is a multi-line breakdown.
     """
     gold = task["gold_resolution"]
     language = task.get("language", "text")

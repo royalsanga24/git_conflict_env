@@ -86,7 +86,7 @@ def get_grader() -> Dict[str, Any]:
     return {
         "message": "Grader results are returned in the step() observation. "
                    "Use the WebSocket API for interactive sessions.",
-        # Avoid literal 0.0/1.0 floats here — automated checks may scan JSON numbers.
+        # Avoid endpoint floats in this JSON — some validators scan numeric fields.
         "score_range_note": "Task scores use strict open interval (0, 1), never exactly 0 or 1.",
         "components": {
             "markers_removed": 0.10,

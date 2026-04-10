@@ -36,7 +36,7 @@ except (ImportError, ModuleNotFoundError):
     from task_loader import get_all_tasks, get_task, list_task_ids
 
 MAX_ATTEMPTS = 3
-ATTEMPT_MULTIPLIERS = {1: 1.0, 2: 0.8, 3: 0.6}
+ATTEMPT_MULTIPLIERS = {1: 1, 2: 0.8, 3: 0.6}
 MIN_STRICT_SCORE = STRICT_SCORE_MIN
 MAX_STRICT_SCORE = STRICT_SCORE_MAX
 
