@@ -61,14 +61,22 @@ _STANDALONE_ONE = re.compile(r"(?<![0-9.])1\.0+(?![0-9])")
 
 def _sanitize_for_log(text: Optional[str]) -> Optional[str]:
     """
-    Some validators scan [STEP]/[END] lines for endpoint float literals.
-    Replace standalone tokens in logged text only (not in env payloads).
+    Validators may treat substrings like 1.0 / 0.0 inside [STEP] JSON (error/action)
+    as out-of-range scores. Replace standalone endpoint floats only so versions
+    (e.g. 3.1.0) stay intact.
     """
     if not text:
         return text
     text = _STANDALONE_ONE.sub("high", text)
     text = _STANDALONE_ZERO.sub("low", text)
     return text
+
+
+def _safe_log_error(exc: BaseException) -> str:
+    """Never put raw exception text on stdout without sanitizing (no `or str(exc)` leak)."""
+    raw = str(exc) if exc else ""
+    out = _sanitize_for_log(raw)
+    return out if (out and out.strip()) else "error"
 
 
 def log_start(task: str, env: str, model: str) -> None:
@@ -219,7 +227,7 @@ def run_task(task_id: str, client: OpenAI) -> Dict[str, Any]:
                 action='',
                 reward=MIN_TASK_SCORE,
                 done=True,
-                error=_sanitize_for_log(str(exc)) or str(exc),
+                error=_safe_log_error(exc),
             )
         except Exception:
             pass
