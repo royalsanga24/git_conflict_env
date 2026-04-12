@@ -159,12 +159,12 @@ uvicorn server.app:app --host 0.0.0.0 --port 8000
 
 ```bash
 cd git_conflict_env
-# Root Dockerfile is a symlink to server/Dockerfile so CI can run: docker build .
+# Root Dockerfile is the real file (CI/hackathon checks often reject symlink-only roots). server/Dockerfile points here.
 docker build -t git-conflict-env:latest .
 docker run -p 8000:8000 git-conflict-env:latest
 ```
 
-(Alternatively: `docker build -t git-conflict-env:latest -f server/Dockerfile .`)
+(`server/Dockerfile` is a symlink to the root `Dockerfile`; either path works.)
 
 ### Run Baseline
 
@@ -239,7 +239,7 @@ Baseline run using `gpt-4o` with `temperature=0` for reproducibility. Reported s
 
 ```
 git_conflict_env/
-├── Dockerfile               # Symlink → server/Dockerfile (for `docker build .`)
+├── Dockerfile               # Container build (canonical); `docker build .`
 ├── __init__.py              # Package exports
 ├── models.py                # ConflictAction, ConflictObservation, ConflictState
 ├── client.py                # GitConflictEnv WebSocket client
@@ -257,6 +257,6 @@ git_conflict_env/
     ├── task_loader.py       # Task index and lookup
     ├── baseline_runner.py   # Inference logic for /baseline
     ├── app.py               # FastAPI application
-    ├── Dockerfile           # Container definition (canonical)
+    ├── Dockerfile           # Symlink → ../Dockerfile
     └── requirements.txt     # Server dependencies
 ```
