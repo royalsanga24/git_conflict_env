@@ -6,3 +6,38 @@ app: server.app:app
 port: 8000
 description: "Git merge conflict resolution environment — agents resolve real conflicts across Python, JS, CSS, JSON, YAML files with deterministic grading"
 version: "0.1.0"
+
+# Phase-2: validator imports each grader class and calls Class().grade(None); the float
+# must satisfy 0 < score < 1. This is not inference.py stdout.
+x-grader: &default_grader server.grader:GitConflictGrader
+tasks:
+  - id: easy_001
+    grader: *default_grader
+  - id: easy_002
+    grader: *default_grader
+  - id: easy_003
+    grader: *default_grader
+  - id: easy_004
+    grader: *default_grader
+  - id: easy_005
+    grader: *default_grader
+  - id: medium_001
+    grader: *default_grader
+  - id: medium_002
+    grader: *default_grader
+  - id: medium_003
+    grader: *default_grader
+  - id: medium_004
+    grader: *default_grader
+  - id: medium_005
+    grader: *default_grader
+  - id: hard_001
+    grader: *default_grader
+  - id: hard_002
+    grader: *default_grader
+  - id: hard_003
+    grader: *default_grader
+  - id: hard_004
+    grader: *default_grader
+  - id: hard_005
+    grader: *default_grader

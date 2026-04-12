@@ -79,6 +79,33 @@ def grade(agent_resolution: str, task: dict) -> Tuple[float, str]:
     return final_score, "\n".join(feedback)
 
 
+class GitConflictGrader:
+    """
+    OpenEnv Phase-2 task-validation entry point (separate from episode scoring).
+
+    The harness loads ``openenv.yaml`` ``tasks[].grader``, imports this class, and runs::
+
+        float(GitConflictGrader().grade(None))
+
+    That return value must be strictly between 0 and 1. The episode API continues
+    to use the module-level :func:`grade` function with ``(resolution, task)``.
+    """
+
+    def grade(self, submission: str | None = None) -> float:
+        if submission is None:
+            return float(STRICT_SCORE_MIN)
+        try:
+            from .task_loader import get_task, list_task_ids
+
+            ids = list_task_ids()
+            if not ids:
+                return float(STRICT_SCORE_MIN)
+            s, _ = grade(submission, get_task(ids[0]))
+            return float(s)
+        except Exception:
+            return float(STRICT_SCORE_MIN)
+
+
 # ---------------------------------------------------------------------------
 # Component helpers
 # ---------------------------------------------------------------------------
@@ -163,10 +190,20 @@ def _check_key_elements(
     return element_score, [header] + feedback
 
 
+def _format_similarity_pct(ratio: float) -> str:
+    """Avoid '100.0%' / '0.0%' substrings in feedback for naive scanners."""
+    pct = int(round(float(ratio) * 100))
+    if pct <= 0:
+        return "under 1%"
+    if pct >= 100:
+        return "100%"
+    return f"{pct}%"
+
+
 def _check_similarity(agent: str, gold: str) -> Tuple[float, str]:
     ratio = SequenceMatcher(None, _normalize(agent), _normalize(gold)).ratio()
     sim_score = round(W_SIMILARITY * ratio, 4)
-    return sim_score, f"[+{sim_score:.2f}] Similarity to gold: {ratio:.1%}"
+    return sim_score, f"[+{sim_score:.2f}] Similarity to gold: {_format_similarity_pct(ratio)}"
 
 
 def _check_exact_match(agent: str, gold: str) -> Tuple[float, str]:

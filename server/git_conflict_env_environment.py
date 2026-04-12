@@ -41,6 +41,15 @@ MIN_STRICT_SCORE = STRICT_SCORE_MIN
 MAX_STRICT_SCORE = STRICT_SCORE_MAX
 
 
+def _fmt_score_for_feedback(value: float) -> str:
+    """
+    Avoid :.2f on clamped scores: 0.9999 rounds to '1.00' in feedback text, which
+    automated checks may treat as an out-of-range task score.
+    """
+    v = min(max(float(value), MIN_STRICT_SCORE), MAX_STRICT_SCORE)
+    return f"{v:.4f}"
+
+
 class GitConflictEnvironment(Environment):
     """
     Environment for resolving git merge conflicts.
@@ -143,7 +152,7 @@ class GitConflictEnvironment(Environment):
         self._last_grader_result = {
             "task_id": task["id"],
             "attempt": attempt,
-            "raw_score": raw_score,
+            "graded_score": raw_score,
             "multiplier": multiplier,
             "adjusted_score": adjusted_score,
             "best_score": self._state.best_score,
@@ -157,13 +166,14 @@ class GitConflictEnvironment(Environment):
         if is_done:
             self._state.resolved = True
 
+        score_txt = _fmt_score_for_feedback(adjusted_score)
         if is_perfect:
-            header = f"Score: {adjusted_score:.2f} (attempt {attempt}, multiplier x{multiplier:g}) - PERFECT"
+            header = f"Score: {score_txt} (attempt {attempt}, multiplier x{multiplier:g}) - PERFECT"
         elif is_done:
-            header = f"Score: {adjusted_score:.2f} (attempt {attempt}, multiplier x{multiplier:g}) - Final attempt"
+            header = f"Score: {score_txt} (attempt {attempt}, multiplier x{multiplier:g}) - Final attempt"
         else:
             header = (
-                f"Score: {adjusted_score:.2f} (attempt {attempt}, multiplier x{multiplier:g}) - "
+                f"Score: {score_txt} (attempt {attempt}, multiplier x{multiplier:g}) - "
                 f"{attempts_left} attempt(s) remaining"
             )
 

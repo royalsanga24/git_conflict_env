@@ -22,6 +22,7 @@ dev = [
 
 [project.scripts]
 server = "git_conflict_env.server.app:main"
+validate-phase2 = "git_conflict_env.server.phase2_validate:main"
 
 [tool.setuptools]
 include-package-data = true
@@ -30,3 +31,7 @@ package-dir = { "git_conflict_env" = ".", "git_conflict_env.server" = "server", 
 
 [tool.setuptools.package-data]
 "git_conflict_env.tasks" = ["*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

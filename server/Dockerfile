@@ -57,7 +57,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Final runtime stage
 FROM ${BASE_IMAGE}
 
-WORKDIR /app
+# Env code and openenv.yaml live under /app/env; cwd must match for validator scripts
+# that open('openenv.yaml') and for uvicorn imports.
+WORKDIR /app/env
 
 # Copy the virtual environment from builder
 COPY --from=builder /app/env/.venv /app/.venv
@@ -75,6 +77,5 @@ ENV PYTHONPATH="/app/env:$PYTHONPATH"
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the FastAPI server
-# The module path is constructed to work with the /app/env structure
-CMD ["sh", "-c", "cd /app/env && uvicorn server.app:app --host 0.0.0.0 --port 8000"]
+# Run the FastAPI server (WORKDIR is already /app/env)
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
